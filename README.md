@@ -41,9 +41,39 @@ Output schema per line:
 
 - `link_id`, `subreddit`
 - `comment_count`, `root_count`, `created_utc_min/max`, `orphan_comments`
-- `roots`: array of nested comment trees; each node carries `author`, `body`, `body_cleaned`, `score`, `controversiality`, timestamps, and its children.
+- `roots`: array of nested comment trees; each node carries `author`, `body`, `body_cleaned`, `net_votes` (upvotes minus downvotes), `controversiality`, timestamps, and its children.
 
-This structure lets us traverse a thread depth-first, isolate quoted spans, and compute discourse strategies analogous to the newspaper workflow from the paper.
+During reconstruction we drop comments whose body is `[deleted]`, `[removed]`, or empty. Their children slide up in the tree so you only see living content while preserving reply chains. This structure lets us traverse a thread depth-first, isolate quoted spans, and compute discourse strategies analogous to the newspaper workflow from the paper.
+
+### Quick thread previews
+
+To inspect any reconstructed conversation without loading it into a notebook, use `view_thread.py`:
+
+```bash
+# Show the first thread in the file
+python3 scripts/view_thread.py data/interim/threads_2008-01.jsonl --index 0
+
+# Or target a specific submission id
+python3 scripts/view_thread.py data/interim/threads_2008-01.jsonl --link-id t3_648iy
+
+# Save to a text file instead of printing
+python3 scripts/view_thread.py data/interim/threads_2008-01.jsonl --link-id t3_648iy \
+  --output outputs/t3_648iy.txt
+```
+
+The script prints a readable tree with author, net votes, timestamps, and truncated bodies so you can quickly verify how the comments connect.
+
+### Export every thread to text files
+
+When you want a human-readable file per submission, run:
+
+```bash
+python3 scripts/export_threads_text.py \
+  data/interim/threads_2008-01.jsonl \
+  outputs/threads_2008-01
+```
+
+Each thread becomes `outputs/threads_2008-01/000123_t3_abcd12.txt`. Use `--limit` for a quick smoke test or `--max-body-chars` to control truncation.
 
 ## 3. Next steps toward the paper reproduction
 
