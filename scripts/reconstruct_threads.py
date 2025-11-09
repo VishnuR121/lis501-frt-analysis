@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
 
+DELETED_BODIES = {"[deleted]", "[removed]"}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -142,7 +144,6 @@ def group_by_submission(comments: Dict[str, CommentNode]) -> defaultdict[str, Li
 def build_tree(
     comment_id: str,
     lookup: Dict[str, CommentNode],
-    depth: int = 0,
 ) -> Dict:
     comment = lookup[comment_id]
     return {
@@ -151,15 +152,12 @@ def build_tree(
         "author": comment.author,
         "body": comment.body,
         "body_cleaned": comment.body_cleaned,
-        "score": comment.score,
+        "net_votes": comment.score,
         "controversiality": comment.controversiality,
         "created_utc": comment.created_utc,
         "distinguished": comment.distinguished,
         "edited": comment.edited,
-        "depth": depth,
-        "children": [
-            build_tree(child_id, lookup, depth + 1) for child_id in comment.children
-        ],
+        "children": [build_tree(child_id, lookup) for child_id in comment.children],
     }
 
 
@@ -173,6 +171,36 @@ def iter_submissions_in_chron_order(
         return (min(timestamps), link_id)
 
     return sorted(submissions.keys(), key=submission_sort_key)
+
+
+def is_deleted_body(body: Optional[str]) -> bool:
+    if body is None:
+        return True
+    stripped = body.strip()
+    if not stripped:
+        return True
+    return stripped.lower() in DELETED_BODIES
+
+
+def prune_deleted_nodes(nodes: List[Dict]) -> List[Dict]:
+    pruned: List[Dict] = []
+    for node in nodes:
+        pruned.extend(_prune_node(node))
+    return pruned
+
+
+def _prune_node(node: Dict) -> List[Dict]:
+    node["children"] = prune_deleted_nodes(node.get("children", []))
+    if is_deleted_body(node.get("body")):
+        return node["children"]
+    return [node]
+
+
+def count_comments(nodes: List[Dict]) -> int:
+    total = 0
+    for node in nodes:
+        total += 1 + count_comments(node.get("children", []))
+    return total
 
 
 def reconstruct_threads(
@@ -207,15 +235,21 @@ def reconstruct_threads(
             continue
 
         created_times = [lookup[cid].created_utc for cid in comment_ids]
+        root_trees = prune_deleted_nodes(
+            [build_tree(root_id, lookup) for root_id in roots]
+        )
+        if not root_trees:
+            continue
+
         thread_payload = {
             "link_id": link_id,
-            "subreddit": lookup[roots[0]].subreddit,
-            "comment_count": len(comment_ids),
-            "root_count": len(roots),
+            "subreddit": lookup[root_trees[0]["id"]].subreddit,
+            "comment_count": count_comments(root_trees),
+            "root_count": len(root_trees),
             "created_utc_min": min(created_times),
             "created_utc_max": max(created_times),
             "orphan_comments": orphaned,
-            "roots": [build_tree(root_id, lookup) for root_id in roots],
+            "roots": root_trees,
         }
         results.append(thread_payload)
 
@@ -252,4 +286,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
