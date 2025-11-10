@@ -1,7 +1,5 @@
 # lis501-frt-analysis
 
-Recreating *Fighting Fire with Fire: Modelling the Influence of Discourse Strategies in News* (Bosc et al., ACL 2017) with Reddit political discussions instead of news articles. The pipeline below ingests the Politosphere monthly Reddit dumps, rebuilds entire comment threads, and prepares them for downstream stance/quote strategy analyses.
-
 ## Project structure
 
 ```
