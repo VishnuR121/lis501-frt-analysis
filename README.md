@@ -75,6 +75,37 @@ python3 scripts/export_threads_text.py \
 
 Each thread becomes `outputs/threads_2008-01/000123_t3_abcd12.txt`. Use `--limit` for a quick smoke test or `--max-body-chars` to control truncation.
 
+### Build thread-level documents for LDA
+
+When you are ready for topic modeling, convert each reconstructed thread into a single document (concatenated comment text). Threads that do not meet the minimum size threshold are skipped:
+
+```bash
+python3 scripts/build_thread_corpus.py \
+  data/interim/threads_2008-01.jsonl \
+  data/processed/corpus_threads_2008-01.jsonl \
+  --min-comments 5        # default; adjust if needed
+```
+
+The resulting JSONL stores `link_id`, `subreddit`, `comment_count`, timestamps, and the aggregated `text` field ready for vectorization/LDA.
+
+### Fit LDA topics
+
+Install scikit-learn if you have not already (`python3 -m pip install --user scikit-learn`), then run:
+
+```bash
+python3 scripts/run_lda.py \
+  data/processed/corpus_threads_2008-01.jsonl \
+  outputs/lda_2008-01 \
+  --num-topics 15 \
+  --min-df 5 \
+  --max-docs 2000     # optional sampling for quick experiments
+```
+
+Outputs:
+
+- `outputs/lda_2008-01/topics.json`: top words + weights per topic.
+- `outputs/lda_2008-01/doc_topics.jsonl`: one line per thread with its topic distribution (useful for subreddit/month aggregations and visualizations).
+
 ## 3. Next steps toward the paper reproduction
 
 1. **Thread sampling:** Decide how many monthly dumps (2008–2019) you need and whether to filter by subreddits (`politics`, `politicstalk`, etc.).
