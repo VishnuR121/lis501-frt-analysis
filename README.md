@@ -4,10 +4,22 @@
 
 ```
 .
-├── data/                # Ignored by git; holds raw/interim/processed artifacts
-├── notebooks/           # Exploratory analysis (empty placeholder for now)
-├── scripts/             # Data preparation helpers
-└── src/                 # Future library / modeling code
+├── years/
+│   ├── 2008/
+│   │   ├── comments/
+│   │   │   ├── raw/       # Monthly Politosphere dumps (.bz2 + .jsonl)
+│   │   │   ├── threads/   # Reconstructed thread trees
+│   │   │   └── corpus/    # Thread-level documents (monthly + yearly)
+│   │   └── lda/
+│   │       ├── monthly/   # Per-month LDA outputs
+│   │       └── yearly/    # Full-year topic models
+│   ├── 2009/              # Same structure (placeholders for now)
+│   ├── 2010/
+│   ├── 2011/
+│   └── 2012/
+├── notebooks/             # Exploratory analysis (empty placeholder for now)
+├── scripts/               # Data preparation + topic modeling helpers
+└── src/                   # Future library / modeling code
 ```
 
 ## 1. Acquire the Reddit dumps
@@ -16,9 +28,10 @@ The Politosphere dataset is hosted on Zenodo. Grab any month you need (example: 
 
 ```bash
 curl -L 'https://zenodo.org/records/5851729/files/comments_2008-01.bz2?download=1' \
-  -o data/raw/comments_2008-01.bz2
-bunzip2 -k data/raw/comments_2008-01.bz2
-mv data/raw/comments_2008-01 data/raw/comments_2008-01.jsonl
+  -o years/2008/comments/raw/comments_2008-01.bz2
+bunzip2 -k years/2008/comments/raw/comments_2008-01.bz2
+mv years/2008/comments/raw/comments_2008-01 \
+   years/2008/comments/raw/comments_2008-01.jsonl
 ```
 
 > Each line in `.jsonl` is a single comment, containing `link_id` (submission id) and `parent_id` (either the submission or another comment). Those two columns are all we need to rebuild the full conversation context.
@@ -29,8 +42,8 @@ mv data/raw/comments_2008-01 data/raw/comments_2008-01.jsonl
 
 ```bash
 python3 scripts/reconstruct_threads.py \
-  data/raw/comments_2008-01.jsonl \
-  data/interim/threads_2008-01.jsonl \
+  years/2008/comments/raw/comments_2008-01.jsonl \
+  years/2008/comments/threads/threads_2008-01.jsonl \
   --min-comments 5          # optional quality filter
   --max-threads 3           # optional debug limit, drop for full run
 ```
@@ -49,14 +62,15 @@ To inspect any reconstructed conversation without loading it into a notebook, us
 
 ```bash
 # Show the first thread in the file
-python3 scripts/view_thread.py data/interim/threads_2008-01.jsonl --index 0
+python3 scripts/view_thread.py years/2008/comments/threads/threads_2008-01.jsonl --index 0
 
 # Or target a specific submission id
-python3 scripts/view_thread.py data/interim/threads_2008-01.jsonl --link-id t3_648iy
+python3 scripts/view_thread.py years/2008/comments/threads/threads_2008-01.jsonl --link-id t3_648iy
 
 # Save to a text file instead of printing
-python3 scripts/view_thread.py data/interim/threads_2008-01.jsonl --link-id t3_648iy \
-  --output outputs/t3_648iy.txt
+python3 scripts/view_thread.py years/2008/comments/threads/threads_2008-01.jsonl \
+  --link-id t3_648iy \
+  --output years/2008/comments/threads/t3_648iy.txt
 ```
 
 The script prints a readable tree with author, net votes, timestamps, and truncated bodies so you can quickly verify how the comments connect.
@@ -67,11 +81,11 @@ When you want a human-readable file per submission, run:
 
 ```bash
 python3 scripts/export_threads_text.py \
-  data/interim/threads_2008-01.jsonl \
-  outputs/threads_2008-01
+  years/2008/comments/threads/threads_2008-01.jsonl \
+  years/2008/comments/threads/text_dumps/threads_2008-01
 ```
 
-Each thread becomes `outputs/threads_2008-01/000123_t3_abcd12.txt`. Use `--limit` for a quick smoke test or `--max-body-chars` to control truncation.
+Each thread becomes `.../text_dumps/000123_t3_abcd12.txt`. Use `--limit` for a quick smoke test or `--max-body-chars` to control truncation.
 
 ### Build thread-level documents for LDA
 
@@ -79,8 +93,8 @@ When you are ready for topic modeling, convert each reconstructed thread into a 
 
 ```bash
 python3 scripts/build_thread_corpus.py \
-  data/interim/threads_2008-01.jsonl \
-  data/processed/corpus_threads_2008-01.jsonl \
+  years/2008/comments/threads/threads_2008-01.jsonl \
+  years/2008/comments/corpus/corpus_threads_2008-01.jsonl \
   --min-comments 5        # default; adjust if needed
 ```
 
@@ -92,17 +106,42 @@ Install scikit-learn if you have not already (`python3 -m pip install --user sci
 
 ```bash
 python3 scripts/run_lda.py \
-  data/processed/corpus_threads_2008-01.jsonl \
-  outputs/lda_2008-01 \
+  years/2008/comments/corpus/corpus_threads_2008-01.jsonl \
+  years/2008/lda/monthly/2008-01 \
   --num-topics 15 \
   --min-df 5 \
-  --max-docs 2000     # optional sampling for quick experiments
+  --max-docs 2000 \
+  --learning-method online \
+  --batch-size 1024 \
+  --max-iter 10
 ```
 
 Outputs:
 
-- `outputs/lda_2008-01/topics.json`: top words + weights per topic.
-- `outputs/lda_2008-01/doc_topics.jsonl`: one line per thread with its topic distribution (useful for subreddit/month aggregations and visualizations).
+- `years/2008/lda/monthly/2008-01/topics.json`: top words + weights per topic.
+- `years/2008/lda/monthly/2008-01/doc_topics.jsonl`: one line per thread with its topic distribution (useful for subreddit/month aggregations and visualizations).
+
+### Scaling to yearly corpora
+
+1. Build monthly corpora for every month in a year (see above), then concatenate them:
+   ```bash
+   cat years/2008/comments/corpus/corpus_threads_2008-*.jsonl \
+     > years/2008/comments/corpus/corpus_threads_2008.jsonl
+   ```
+   (33,981 threads survived the ≥5 comment filter for 2008.)
+2. Run a larger LDA job (example: 50 topics over the entire year):
+   ```bash
+   python3 scripts/run_lda.py \
+     years/2008/comments/corpus/corpus_threads_2008.jsonl \
+     years/2008/lda/yearly/2008 \
+     --num-topics 50 \
+     --min-df 50 \
+     --max-features 20000 \
+     --learning-method online \
+     --batch-size 1024 \
+     --max-iter 10
+   ```
+   This took ~8.5 minutes on the CLI host and produced yearly topics in `years/2008/lda/yearly/2008/`.
 
 ## 3. Next steps toward the paper reproduction
 

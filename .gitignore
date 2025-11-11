@@ -10,7 +10,7 @@ venv/
 # macOS
 .DS_Store
 
-# Project data artifacts
-data/
-!data/.gitkeep
+# Project data artifacts (per-year storage)
+years/*/comments/**
+!years/*/comments/**/.gitkeep
 notebooks/*.ipynb_checkpoints/

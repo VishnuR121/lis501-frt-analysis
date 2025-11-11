@@ -71,6 +71,24 @@ def parse_args() -> argparse.Namespace:
         default=0,
         help="Random seed for reproducibility.",
     )
+    parser.add_argument(
+        "--max-iter",
+        type=int,
+        default=20,
+        help="Maximum number of LDA training iterations.",
+    )
+    parser.add_argument(
+        "--learning-method",
+        choices=["batch", "online"],
+        default="batch",
+        help="Learning algorithm to use (batch or online).",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=1024,
+        help="Mini-batch size for online learning (ignored for batch method).",
+    )
     return parser.parse_args()
 
 
@@ -112,6 +130,9 @@ def train_lda(
     max_features: int,
     min_df: int,
     random_state: int,
+    max_iter: int,
+    learning_method: str,
+    batch_size: int,
 ) -> Tuple[LatentDirichletAllocation, CountVectorizer, np.ndarray]:
     vectorizer = CountVectorizer(
         max_features=max_features,
@@ -121,8 +142,9 @@ def train_lda(
     doc_term = vectorizer.fit_transform(texts)
     lda = LatentDirichletAllocation(
         n_components=num_topics,
-        learning_method="batch",
-        max_iter=20,
+        learning_method=learning_method,
+        batch_size=batch_size,
+        max_iter=max_iter,
         random_state=random_state,
     )
     lda.fit(doc_term)
@@ -181,6 +203,9 @@ def main() -> None:
         max_features=args.max_features,
         min_df=args.min_df,
         random_state=args.random_state,
+        max_iter=args.max_iter,
+        learning_method=args.learning_method,
+        batch_size=args.batch_size,
     )
     print("LDA training complete.", flush=True)
 
