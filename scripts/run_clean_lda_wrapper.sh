@@ -19,11 +19,6 @@ mkdir -p "${CORPUS_DIR}" "${OUTPUT_DIR}"
 COMBINED="${CORPUS_DIR}/corpus_threads_${YEAR}.jsonl"
 CLEANED="${CORPUS_DIR}/corpus_threads_${YEAR}_clean.jsonl"
 
-# If combined corpus is missing but monthly files exist, merge them.
-if [ ! -f "${COMBINED}" ]; then
-  python3 scripts/merge_corpus.py "${YEAR}"
-fi
-
 # Clean + lemmatize
 python3 scripts/clean_corpus.py "${COMBINED}" "${CLEANED}"
 

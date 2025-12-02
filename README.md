@@ -147,12 +147,17 @@ python3 scripts/run_lda.py \
 
 2. Ensure monthly corpora exist at `years/<YEAR>/comments/corpus/corpus_threads_<YEAR>-MM.jsonl` for each month.
 
-3. Submit `htcondor/run_clean_lda.submit`, updating the queue block to list the years you want (2008–2019):
+3. Merge monthly corpora into a yearly file (one time per year):
+   ```bash
+   python3 scripts/merge_corpus.py 2008   # repeat per year
+   ```
+
+4. Submit `htcondor/run_clean_lda.submit`, updating the queue block to list the years you want (2008–2019):
    ```bash
    condor_submit htcondor/run_clean_lda.submit
    ```
 
-Each job (per year) unpacks `python_libs.tar.gz`, merges monthly corpora if needed, cleans/lemmatizes them (`clean_corpus.py`), and runs LDA (`run_lda.py`). Outputs land in `years/<YEAR>/lda/yearly/` as `topics.json` and `doc_topics.jsonl`.
+Each job (per year) unpacks `python_libs.tar.gz`, cleans/lemmatizes the combined yearly corpus (`clean_corpus.py`), and runs LDA (`run_lda.py`). Outputs land in `years/<YEAR>/lda/yearly/` as `topics.json` and `doc_topics.jsonl`.
 
 ### Fit LDA topics
 

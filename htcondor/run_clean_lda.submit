@@ -2,20 +2,8 @@ universe        = vanilla
 executable      = /bin/bash
 arguments       = scripts/run_clean_lda_wrapper.sh $(year)
 
-# Ship scripts + deps + monthly corpora (update years list in queue)
-transfer_input_files = scripts, python_libs.tar.gz, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-01.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-02.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-03.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-04.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-05.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-06.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-07.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-08.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-09.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-10.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-11.jsonl, \
-  years/$(year)/comments/corpus/corpus_threads_$(year)-12.jsonl
+# Ship scripts + deps + yearly combined corpus
+transfer_input_files = scripts, python_libs.tar.gz, years/$(year)/comments/corpus/corpus_threads_$(year).jsonl
 
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
