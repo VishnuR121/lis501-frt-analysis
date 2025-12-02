@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Clean and lemmatize a corpus JSONL (one document per line) for LDA.
+Clean and lemmatize a corpus JSONL (one document per line) for LDA using NLTK.
 
 For each record, the `text` field is replaced with a cleaned, lemmatized string:
 - lowercase
 - alphabetic tokens only
-- drop stop words, punctuation, and the literal token "url"
+- drop stop words, punctuation, the literal token "url"
 - drop very short tokens (<=2 characters)
 """
 
@@ -13,15 +13,26 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Iterable
 
-import spacy
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+
+# Ensure required NLTK data is available
+for resource in ["punkt", "punkt_tab", "stopwords", "wordnet", "omw-1.4"]:
+    try:
+        nltk.data.find(f"tokenizers/{resource}") if "punkt" in resource else nltk.data.find(f"corpora/{resource}")
+    except LookupError:
+        nltk.download(resource, quiet=True)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Clean and lemmatize a corpus JSONL for LDA."
+        description="Clean and lemmatize a corpus JSONL for LDA (NLTK-based)."
     )
     parser.add_argument(
         "input_path",
@@ -34,12 +45,6 @@ def parse_args() -> argparse.Namespace:
         help="Destination JSONL with cleaned `text` field.",
     )
     parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=500,
-        help="spaCy pipe batch size (larger is faster but uses more memory).",
-    )
-    parser.add_argument(
         "--max-docs",
         type=int,
         default=None,
@@ -48,29 +53,28 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_nlp():
-    # Expect the small English model to be installed.
-    try:
-        return spacy.load("en_core_web_sm")
-    except OSError:
-        raise SystemExit(
-            "spaCy model 'en_core_web_sm' is not installed. "
-            "Install with: python -m spacy download en_core_web_sm"
-        )
+STOP_WORDS = set(stopwords.words("english"))
+LEMMATIZER = WordNetLemmatizer()
+ALPHA_RE = re.compile(r"[^a-zA-Z]+")
 
 
-def clean_doc(doc: spacy.tokens.Doc) -> str:
-    tokens: List[str] = []
-    for tok in doc:
-        if not tok.is_alpha:
+def clean_text(text: str) -> str:
+    # Lowercase and remove non-alpha characters
+    text = ALPHA_RE.sub(" ", text.lower())
+    tokens = word_tokenize(text)
+    kept = []
+    for tok in tokens:
+        if tok == "url":
             continue
-        lemma = tok.lemma_.lower()
-        if lemma == "url":
+        if tok in STOP_WORDS:
             continue
-        if tok.is_stop or tok.is_punct or len(lemma) <= 2:
+        if len(tok) <= 2:
             continue
-        tokens.append(lemma)
-    return " ".join(tokens)
+        lemma = LEMMATIZER.lemmatize(tok)
+        if not lemma.isalpha():
+            continue
+        kept.append(lemma)
+    return " ".join(kept)
 
 
 def iter_records(path: Path) -> Iterable[dict]:
@@ -85,45 +89,23 @@ def main() -> None:
     if not args.input_path.exists():
         raise FileNotFoundError(f"Input corpus not found: {args.input_path}")
 
-    nlp = load_nlp()
     args.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     total_in = 0
     total_out = 0
-    batch_records: List[Tuple[dict, str]] = []
-
     with args.output_path.open("w", encoding="utf-8") as writer:
         for rec in iter_records(args.input_path):
             text = rec.get("text", "") or ""
-            batch_records.append((rec, text))
+            cleaned = clean_text(text)
             total_in += 1
-
             if args.max_docs and total_in > args.max_docs:
                 break
-
-            if len(batch_records) >= args.batch_size:
-                docs = nlp.pipe((t for _, t in batch_records), batch_size=args.batch_size)
-                for (orig, _), doc in zip(batch_records, docs):
-                    cleaned = clean_doc(doc)
-                    if not cleaned:
-                        continue
-                    orig["text"] = cleaned
-                    writer.write(json.dumps(orig))
-                    writer.write("\n")
-                    total_out += 1
-                batch_records.clear()
-
-        # process remaining
-        if batch_records:
-            docs = nlp.pipe((t for _, t in batch_records), batch_size=args.batch_size)
-            for (orig, _), doc in zip(batch_records, docs):
-                cleaned = clean_doc(doc)
-                if not cleaned:
-                    continue
-                orig["text"] = cleaned
-                writer.write(json.dumps(orig))
-                writer.write("\n")
-                total_out += 1
+            if not cleaned:
+                continue
+            rec["text"] = cleaned
+            writer.write(json.dumps(rec))
+            writer.write("\n")
+            total_out += 1
 
     print(
         f"Cleaned corpus written to {args.output_path} | "
@@ -134,4 +116,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
