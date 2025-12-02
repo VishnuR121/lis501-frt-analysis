@@ -6,7 +6,7 @@ set -euo pipefail
 YEAR=$1
 MONTH=$2
 
-SHARED=/staging/groups/lis501_fall2025
+SHARED=/staging/groups/lis501_fall2025/PolitosphereDatasetUncompressed
 BASE_DIR=$PWD/years/${YEAR}
 RAW_DIR=$BASE_DIR/comments/raw
 THREADS_DIR=$BASE_DIR/comments/threads
@@ -15,15 +15,12 @@ CORPUS_DIR=$BASE_DIR/comments/corpus
 mkdir -p "$RAW_DIR" "$THREADS_DIR" "$CORPUS_DIR"
 
 FILE="comments_${YEAR}-${MONTH}"
-SHARED_BZ="$SHARED/${FILE}.bz2"
-RAW_BZ="$RAW_DIR/${FILE}.bz2"
+SHARED_JSON="$SHARED/${FILE}"
 RAW_JSON="$RAW_DIR/${FILE}.jsonl"
 
 if [ ! -f "$RAW_JSON" ]; then
-  echo "Copying $SHARED_BZ"
-  cp "$SHARED_BZ" "$RAW_BZ"
-  bunzip2 -k "$RAW_BZ"
-  mv "$RAW_DIR/${FILE}" "$RAW_JSON"
+  echo "Copying $SHARED_JSON"
+  cp "$SHARED_JSON" "$RAW_JSON"
 fi
 
 THREADS_OUT="$THREADS_DIR/threads_${YEAR}-${MONTH}.jsonl"
