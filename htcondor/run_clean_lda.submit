@@ -1,0 +1,33 @@
+universe        = vanilla
+executable      = /bin/bash
+arguments       = scripts/run_clean_lda_wrapper.sh $(year)
+
+# Ship scripts + deps + monthly corpora (update years list in queue)
+transfer_input_files = scripts, python_libs.tar.gz, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-01.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-02.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-03.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-04.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-05.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-06.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-07.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-08.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-09.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-10.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-11.jsonl, \
+  years/$(year)/comments/corpus/corpus_threads_$(year)-12.jsonl
+
+should_transfer_files   = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files   = years/$(year)/lda/yearly/topics.json, years/$(year)/lda/yearly/doc_topics.jsonl
+
+log     = condor_logs/run_clean_lda_$(year)_$(Cluster).log
+output  = condor_logs/run_clean_lda_$(year)_$(Cluster).out
+error   = condor_logs/run_clean_lda_$(year)_$(Cluster).err
+request_memory = 8GB
+request_cpus   = 4
+request_disk   = 30GB
+
+queue year from (
+2008
+)

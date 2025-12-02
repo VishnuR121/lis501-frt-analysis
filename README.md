@@ -100,6 +100,60 @@ python3 scripts/build_thread_corpus.py \
 
 The resulting JSONL stores `link_id`, `subreddit`, `comment_count`, timestamps, and the aggregated `text` field ready for vectorization/LDA.
 
+### Clean and lemmatize a yearly corpus (example: 2008)
+
+Install the text-processing dependencies once in your Python environment:
+
+```bash
+python3 -m pip install scikit-learn spacy==3.2.1
+python3 -m spacy download en_core_web_sm
+```
+
+Then clean and lemmatize the combined corpus for 2008 (assumes monthly corpora are already concatenated to `years/2008/comments/corpus/corpus_threads_2008.jsonl`):
+
+```bash
+python3 scripts/clean_corpus.py \
+  years/2008/comments/corpus/corpus_threads_2008.jsonl \
+  years/2008/comments/corpus/corpus_threads_2008_clean.jsonl
+```
+
+This removes punctuation, non-alphabetic tokens, stop words, the literal token `url`, and very short tokens, and lemmatizes the remainder.
+
+Run LDA on the cleaned corpus:
+
+```bash
+python3 scripts/run_lda.py \
+  years/2008/comments/corpus/corpus_threads_2008_clean.jsonl \
+  years/2008/lda/yearly/2008 \
+  --num-topics 50 \
+  --min-df 50 \
+  --max-features 20000 \
+  --learning-method online \
+  --batch-size 1024 \
+  --max-iter 10
+```
+
+### Running cleaning + LDA on CHTC for multiple years
+
+1. Build portable Python deps once on the login node:
+   ```bash
+   cd ~/projects/lis501-frt-analysis
+   rm -rf python_libs python_libs.tar.gz
+   python3 -m pip install --upgrade pip
+   python3 -m pip install --target python_libs scikit-learn spacy==3.2.1
+   python3 -m pip install --target python_libs https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.2.0/en_core_web_sm-3.2.0.tar.gz
+   tar czf python_libs.tar.gz python_libs
+   ```
+
+2. Ensure monthly corpora exist at `years/<YEAR>/comments/corpus/corpus_threads_<YEAR>-MM.jsonl` for each month.
+
+3. Submit `htcondor/run_clean_lda.submit`, updating the queue block to list the years you want (2008–2019):
+   ```bash
+   condor_submit htcondor/run_clean_lda.submit
+   ```
+
+Each job (per year) unpacks `python_libs.tar.gz`, merges monthly corpora if needed, cleans/lemmatizes them (`clean_corpus.py`), and runs LDA (`run_lda.py`). Outputs land in `years/<YEAR>/lda/yearly/` as `topics.json` and `doc_topics.jsonl`.
+
 ### Fit LDA topics
 
 Install scikit-learn if you have not already (`python3 -m pip install --user scikit-learn`), then run:
