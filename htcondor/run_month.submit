@@ -8,8 +8,7 @@ transfer_input_files = scripts
 
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
-transfer_output_files   = threads, corpus
-transfer_output_remaps  = "threads=years/$(year)/comments/threads; corpus=years/$(year)/comments/corpus"
+transfer_output_files   = years/$(year)/comments/threads, years/$(year)/comments/corpus
 
 log     = condor_logs/run_month_$(Cluster)_$(Process).log
 output  = condor_logs/run_month_$(Cluster)_$(Process).out
