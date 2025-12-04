@@ -2,8 +2,8 @@ universe        = vanilla
 executable      = /bin/bash
 arguments       = scripts/run_clean_lda_wrapper.sh $(year)
 
-# Run jobs from the repo root
-initialdir      = $(SUBMIT_DIR)/..
+# Run jobs from the repo root (set this to your repo path)
+initialdir      = /home/vrallapalli2/projects/lis501-frt-analysis
 
 # Ship scripts + deps + yearly combined corpus (relative to initialdir)
 transfer_input_files = \
