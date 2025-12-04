@@ -6,13 +6,8 @@ set -euo pipefail
 YEAR=$1
 MONTH=$2
 
-# Location of raw comments (override with DATA_ROOT env var)
-SHARED=${DATA_ROOT:-/staging/groups/lis501_fall2025/PolitosphereDatasetUncompressed}
-
-# Where to write outputs (override with OUTPUT_ROOT env var)
-OUTPUT_ROOT=${OUTPUT_ROOT:-$PWD}
-
-BASE_DIR=$OUTPUT_ROOT/years/${YEAR}
+SHARED=/staging/groups/lis501_fall2025/PolitosphereDatasetUncompressed
+BASE_DIR=$PWD/years/${YEAR}
 RAW_DIR=$BASE_DIR/comments/raw
 THREADS_DIR=$BASE_DIR/comments/threads
 CORPUS_DIR=$BASE_DIR/comments/corpus
