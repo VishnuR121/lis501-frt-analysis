@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 """
-Clean and lemmatize a corpus JSONL (one document per line) for LDA using spaCy.
+Clean a corpus JSONL (one document per line) for LDA using lightweight,
+dependency-friendly preprocessing (regex + scikit-learn stopwords).
 
-For each record, the `text` field is replaced with a cleaned, lemmatized string:
+For each record, the `text` field is replaced with a cleaned token string:
 - lowercase
 - alphabetic tokens only
-- drop stop words, punctuation, the literal token "url"
+- drop stop words, the literal token "url"
 - drop very short tokens (<=2 characters)
+- optional stemming if nltk is available (no external downloads required)
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Iterable
 
-import spacy
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
-NLP = None
+try:
+    from nltk.stem import PorterStemmer
+except Exception:
+    PorterStemmer = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,22 +50,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_nlp():
-    return spacy.load("en_core_web_sm", disable=["ner", "parser", "textcat"])
+STOP_WORDS = set(ENGLISH_STOP_WORDS) | {"url"}
+STEMMER = PorterStemmer() if PorterStemmer is not None else None
+TOKEN_RE = re.compile(r"[A-Za-z]+")
 
 
 def clean_text(text: str) -> str:
-    doc = NLP(text.lower())
+    tokens = TOKEN_RE.findall(text.lower())
     kept = []
-    for tok in doc:
-        if tok.is_stop or tok.is_punct or not tok.is_alpha:
+    for tok in tokens:
+        if tok in STOP_WORDS:
             continue
-        if tok.text == "url":
+        if len(tok) <= 2:
             continue
-        lemma = tok.lemma_.strip()
-        if len(lemma) <= 2:
-            continue
-        kept.append(lemma)
+        if STEMMER:
+            tok = STEMMER.stem(tok)
+        kept.append(tok)
     return " ".join(kept)
 
 
@@ -74,9 +80,6 @@ def main() -> None:
     args = parse_args()
     if not args.input_path.exists():
         raise FileNotFoundError(f"Input corpus not found: {args.input_path}")
-
-    global NLP
-    NLP = load_nlp()
 
     args.output_path.parent.mkdir(parents=True, exist_ok=True)
 
