@@ -2,14 +2,14 @@ universe        = vanilla
 executable      = /bin/bash
 arguments       = scripts/run_clean_lda_wrapper.sh $(year)
 
-# Make paths absolute so they are found regardless of submit location
-BASE            = $(SUBMIT_DIR)/..
+# Run jobs from the repo root
+initialdir      = $(SUBMIT_DIR)/..
 
-# Ship scripts + deps + yearly combined corpus
+# Ship scripts + deps + yearly combined corpus (relative to initialdir)
 transfer_input_files = \
-  $(BASE)/scripts, \
-  $(BASE)/python_libs.tar.gz, \
-  $(BASE)/years/$(year)/comments/corpus/corpus_threads_$(year).jsonl
+  scripts, \
+  python_libs.tar.gz, \
+  years/$(year)/comments/corpus/corpus_threads_$(year).jsonl
 
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
