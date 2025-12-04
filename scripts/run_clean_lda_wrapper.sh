@@ -19,6 +19,20 @@ mkdir -p "${CORPUS_DIR}" "${OUTPUT_DIR}"
 COMBINED="${CORPUS_DIR}/corpus_threads_${YEAR}.jsonl"
 CLEANED="${CORPUS_DIR}/corpus_threads_${YEAR}_clean.jsonl"
 
+# If Condor dropped the corpus as a flat file in CWD, move it into place
+FLAT_COMBINED="corpus_threads_${YEAR}.jsonl"
+if [ ! -f "${COMBINED}" ] && [ -f "${FLAT_COMBINED}" ]; then
+  mkdir -p "${CORPUS_DIR}"
+  mv "${FLAT_COMBINED}" "${COMBINED}"
+fi
+
+# Bail out early if the combined corpus is still missing
+if [ ! -f "${COMBINED}" ]; then
+  echo "Combined corpus not found: ${COMBINED}" >&2
+  ls -l . >&2
+  exit 1
+fi
+
 # Clean + lemmatize
 python3 scripts/clean_corpus.py "${COMBINED}" "${CLEANED}"
 
