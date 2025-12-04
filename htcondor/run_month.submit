@@ -2,13 +2,19 @@ universe        = vanilla
 executable      = scripts/run_month_pipeline.sh
 arguments       = $(year) $(month)
 
-# Ship only the scripts; the job reads raw comments from the shared path
-# configured inside run_month_pipeline.sh.
+# Run from the staging checkout; adjust if your path differs
+initialdir      = /staging/groups/lis501_fall2025/lis501-frt-analysis
+
+# Environment to control IO paths
+environment = "OUTPUT_ROOT=/staging/groups/lis501_fall2025/outputs DATA_ROOT=/staging/groups/lis501_fall2025/PolitosphereDatasetUncompressed"
+
+# Ship only the scripts; the job reads raw comments from DATA_ROOT and writes under OUTPUT_ROOT
 transfer_input_files = scripts
 
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
-transfer_output_files   = years/$(year)/comments/threads, years/$(year)/comments/corpus
+# Outputs live on shared FS; nothing to pull back
+transfer_output_files   =
 
 log     = condor_logs/run_month_$(Cluster)_$(Process).log
 output  = condor_logs/run_month_$(Cluster)_$(Process).out
