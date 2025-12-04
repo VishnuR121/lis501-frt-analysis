@@ -13,7 +13,9 @@ transfer_input_files = \
 
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
-transfer_output_files   = years/$(year)/lda/yearly/topics.json, years/$(year)/lda/yearly/doc_topics.jsonl
+# Transfer the expected outputs; remap in case they are written flat
+transfer_output_files   = years/$(year)/lda/topics.json, years/$(year)/lda/doc_topics.jsonl, topics.json, doc_topics.jsonl
+transfer_output_remaps  = "topics.json=years/$(year)/lda/topics.json; doc_topics.jsonl=years/$(year)/lda/doc_topics.jsonl"
 
 log     = condor_logs/run_clean_lda_$(year)_$(Cluster).log
 output  = condor_logs/run_clean_lda_$(year)_$(Cluster).out
