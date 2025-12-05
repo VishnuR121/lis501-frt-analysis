@@ -9,19 +9,27 @@ YEAR="$1"
 tar xzf python_libs.tar.gz
 export PYTHONPATH="$PWD/python_libs:${PYTHONPATH:-}"
 
-# Paths (use OUTPUT_ROOT if set, else current dir)
-BASE=${OUTPUT_ROOT:-$PWD}
-YEAR_DIR="${BASE}/years/${YEAR}"
-OUTPUT_DIR="${YEAR_DIR}/lda/yearly"
+# Paths
+CORPUS_DIR="years/${YEAR}/comments/corpus"
+THREADS_DIR="years/${YEAR}/comments/threads"
+OUTPUT_DIR="years/${YEAR}/lda/yearly"
 
-mkdir -p "${YEAR_DIR}" "${OUTPUT_DIR}"
+mkdir -p "${CORPUS_DIR}" "${OUTPUT_DIR}"
 
-COMBINED="${YEAR_DIR}/corpus_threads_${YEAR}.jsonl"
-CLEANED="${YEAR_DIR}/corpus_threads_${YEAR}_clean.jsonl"
+COMBINED="${CORPUS_DIR}/corpus_threads_${YEAR}.jsonl"
+CLEANED="${CORPUS_DIR}/corpus_threads_${YEAR}_clean.jsonl"
 
+# If Condor dropped the corpus as a flat file in CWD, move it into place
+FLAT_COMBINED="corpus_threads_${YEAR}.jsonl"
+if [ ! -f "${COMBINED}" ] && [ -f "${FLAT_COMBINED}" ]; then
+  mkdir -p "${CORPUS_DIR}"
+  mv "${FLAT_COMBINED}" "${COMBINED}"
+fi
+
+# Bail out early if the combined corpus is still missing
 if [ ! -f "${COMBINED}" ]; then
   echo "Combined corpus not found: ${COMBINED}" >&2
-  ls -l "${YEAR_DIR}" >&2 || true
+  ls -l . >&2
   exit 1
 fi
 

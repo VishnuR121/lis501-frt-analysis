@@ -7,6 +7,7 @@ politosphere monthly comment dumps.
 from __future__ import annotations
 
 import argparse
+import sys
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -57,6 +58,9 @@ def parse_args() -> argparse.Namespace:
     )
     return parser.parse_args()
 
+
+# Some threads can be very deep; bump recursion limit to avoid RecursionError
+sys.setrecursionlimit(max(sys.getrecursionlimit(), 50000))
 
 def normalize_comment_id(comment_id: str) -> str:
     """Ensure comment ids always carry the t1_ prefix."""
