@@ -5,15 +5,16 @@ arguments       = scripts/run_clean_lda_wrapper.sh $(year)
 # Run jobs from the repo root (set this to your repo path)
 initialdir      = /home/vrallapalli2/projects/lis501-frt-analysis
 
-# Ship scripts + deps + yearly combined corpus (relative to initialdir)
-transfer_input_files = \
-  scripts, \
-  python_libs.tar.gz, \
-  years/$(year)/comments/corpus/corpus_threads_$(year).jsonl
+# IO paths on shared space
+environment = "OUTPUT_ROOT=/staging/groups/lis501_fall2025/outputs"
+
+# Ship scripts + deps; corpus is read in place from OUTPUT_ROOT
+transfer_input_files = scripts, python_libs.tar.gz
 
 should_transfer_files   = YES
 when_to_transfer_output = ON_EXIT
-transfer_output_files = years/$(year)/lda/yearly/topics.json, years/$(year)/lda/yearly/doc_topics.jsonl
+# Outputs live on shared FS; nothing to pull back
+transfer_output_files   =
 
 log     = condor_logs/run_clean_lda_$(year)_$(Cluster).log
 output  = condor_logs/run_clean_lda_$(year)_$(Cluster).out
