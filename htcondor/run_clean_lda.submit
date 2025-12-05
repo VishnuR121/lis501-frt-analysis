@@ -5,8 +5,8 @@ arguments       = scripts/run_clean_lda_wrapper.sh $(year)
 # Run jobs from the repo root (set this to your repo path)
 initialdir      = /home/vrallapalli2/projects/lis501-frt-analysis
 
-# IO paths on shared space
-environment = "OUTPUT_ROOT=/staging/groups/lis501_fall2025/outputs"
+# IO paths on shared space (write under repo in /staging)
+environment = "OUTPUT_ROOT=/staging/groups/lis501_fall2025/lis501-frt-analysis/years"
 
 # Ship scripts + deps; corpus is read in place from OUTPUT_ROOT
 transfer_input_files = scripts, python_libs.tar.gz
