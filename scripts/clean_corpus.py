@@ -16,8 +16,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
-from typing import Iterable
 
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
@@ -69,13 +69,6 @@ def clean_text(text: str) -> str:
     return " ".join(kept)
 
 
-def iter_records(path: Path) -> Iterable[dict]:
-    with path.open("r", encoding="utf-8") as handle:
-        for line in handle:
-            if line.strip():
-                yield json.loads(line)
-
-
 def main() -> None:
     args = parse_args()
     if not args.input_path.exists():
@@ -85,23 +78,38 @@ def main() -> None:
 
     total_in = 0
     total_out = 0
+    bad_lines = 0
+    bad_examples = 0
+
     with args.output_path.open("w", encoding="utf-8") as writer:
-        for rec in iter_records(args.input_path):
-            text = rec.get("text", "") or ""
-            cleaned = clean_text(text)
-            total_in += 1
-            if args.max_docs and total_in > args.max_docs:
-                break
-            if not cleaned:
-                continue
-            rec["text"] = cleaned
-            writer.write(json.dumps(rec))
-            writer.write("\n")
-            total_out += 1
+        with args.input_path.open("r", encoding="utf-8") as handle:
+            for idx, line in enumerate(handle, 1):
+                if not line.strip():
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError as e:
+                    bad_lines += 1
+                    if bad_examples < 5:
+                        print(f"[warn] Skipping invalid JSON line {idx}: {e}", file=sys.stderr)
+                        bad_examples += 1
+                    continue
+
+                text = rec.get("text", "") or ""
+                cleaned = clean_text(text)
+                total_in += 1
+                if args.max_docs and total_in > args.max_docs:
+                    break
+                if not cleaned:
+                    continue
+                rec["text"] = cleaned
+                writer.write(json.dumps(rec))
+                writer.write("\n")
+                total_out += 1
 
     print(
         f"Cleaned corpus written to {args.output_path} | "
-        f"docs read: {total_in:,} | docs kept: {total_out:,}",
+        f"docs read: {total_in:,} | docs kept: {total_out:,} | bad lines skipped: {bad_lines:,}",
         flush=True,
     )
 

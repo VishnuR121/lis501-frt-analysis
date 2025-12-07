@@ -18,10 +18,10 @@ transfer_output_files = years/$(year)/lda/yearly/topics.json, years/$(year)/lda/
 log     = condor_logs/run_clean_lda_$(year)_$(Cluster).log
 output  = condor_logs/run_clean_lda_$(year)_$(Cluster).out
 error   = condor_logs/run_clean_lda_$(year)_$(Cluster).err
-request_memory = 8GB
+request_memory = 56GB
 request_cpus   = 4
-request_disk   = 30GB
+request_disk   = 210GB
 
 queue year from (
-2009
+2025
 )
