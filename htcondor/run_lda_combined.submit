@@ -5,7 +5,7 @@ executable = /bin/bash
 initialdir = /home/vrallapalli2/projects/lis501-frt-analysis
 
 # Combined corpus on shared space
-arguments  = -c "python3 scripts/clean_corpus.py /staging/groups/lis501_fall2025/lis501-frt-analysis/years/corpus_threads_2008_2019.jsonl /staging/groups/lis501_fall2025/lis501-frt-analysis/years/corpus_threads_2008_2019_clean.jsonl && python3 scripts/run_lda.py /staging/groups/lis501_fall2025/lis501-frt-analysis/years/corpus_threads_2008_2019_clean.jsonl /staging/groups/lis501_fall2025/lis501-frt-analysis/years/lda_2008_2019 --num-topics 50 --min-df 50 --max-features 20000 --learning-method online --batch-size 1024 --max-iter 10"
+arguments  = -c \"python3 scripts/clean_corpus.py /staging/groups/lis501_fall2025/lis501-frt-analysis/years/corpus_threads_2008_2019.jsonl /staging/groups/lis501_fall2025/lis501-frt-analysis/years/corpus_threads_2008_2019_clean.jsonl && python3 scripts/run_lda.py /staging/groups/lis501_fall2025/lis501-frt-analysis/years/corpus_threads_2008_2019_clean.jsonl /staging/groups/lis501_fall2025/lis501-frt-analysis/years/lda_2008_2019 --num-topics 50 --min-df 50 --max-features 20000 --learning-method online --batch-size 1024 --max-iter 10\"
 
 # Ship scripts + deps
 transfer_input_files = scripts, python_libs.tar.gz
