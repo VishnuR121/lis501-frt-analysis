@@ -19,8 +19,8 @@ log    = condor_logs/run_lda_combined_$(Cluster).log
 output = condor_logs/run_lda_combined_$(Cluster).out
 error  = condor_logs/run_lda_combined_$(Cluster).err
 
-request_memory = 56GB
+request_memory = 75GB
 request_cpus   = 4
-request_disk   = 210GB
+request_disk   = 250GB
 
 queue
