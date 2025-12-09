@@ -203,3 +203,137 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+#!/usr/bin/env python3
+"""
+Generate basic visualizations for an LDA run:
+- Histogram of document lengths with summary stats.
+- pyLDAvis HTML for interactive topic inspection.
+
+Inputs:
+- A cleaned corpus JSONL where each line has a "text" field.
+
+Outputs (written to the chosen output directory):
+- doc_lengths.png
+- doc_length_stats.json
+- lda_vis.html
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+from statistics import mean, median
+from typing import List
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.feature_extraction.text import CountVectorizer
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build LDA visualizations (histogram + pyLDAvis).")
+    parser.add_argument("corpus_path", type=Path, help="Path to cleaned corpus JSONL.")
+    parser.add_argument("output_dir", type=Path, help="Directory to write visualizations.")
+    parser.add_argument("--num-topics", type=int, default=50, help="Number of topics (default: 50).")
+    parser.add_argument("--min-df", type=int, default=50, help="min_df for CountVectorizer (default: 50).")
+    parser.add_argument("--max-features", type=int, default=20000, help="max_features for CountVectorizer (default: 20000).")
+    parser.add_argument("--max-docs", type=int, default=None, help="Optional cap on documents (for quick tests).")
+    return parser.parse_args()
+
+
+def load_texts(corpus_path: Path, max_docs: int | None) -> List[str]:
+    texts: List[str] = []
+    with corpus_path.open("r", encoding="utf-8") as f:
+        for idx, line in enumerate(f, 1):
+            if max_docs and idx > max_docs:
+                break
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            txt = rec.get("text", "") or ""
+            if txt:
+                texts.append(txt)
+    return texts
+
+
+def make_length_plot(lengths: List[int], out_png: Path, stats_path: Path) -> None:
+    stats = {
+        "count": len(lengths),
+        "min": int(min(lengths)),
+        "max": int(max(lengths)),
+        "mean": float(mean(lengths)),
+        "median": float(median(lengths)),
+        "p90": float(np.percentile(lengths, 90)),
+        "p99": float(np.percentile(lengths, 99)),
+    }
+
+    out_png.parent.mkdir(parents=True, exist_ok=True)
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(10, 6))
+
+    # Clip x-axis to reduce the impact of extreme outliers for visualization
+    xmax = stats["p99"]
+    sns.histplot(lengths, bins=100, kde=True)
+    plt.title("Distribution of Document Lengths (words)")
+    plt.xlabel("Word Count")
+    plt.ylabel("Frequency")
+    plt.xlim(0, xmax)
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=200)
+    plt.close()
+
+    stats_path.parent.mkdir(parents=True, exist_ok=True)
+    with stats_path.open("w", encoding="utf-8") as f:
+        json.dump(stats, f, indent=2)
+
+
+def build_pyldavis(texts: List[str], out_html: Path, num_topics: int, min_df: int, max_features: int) -> None:
+    from pyLDAvis.sklearn import prepare
+    import pyLDAvis
+
+    vectorizer = CountVectorizer(min_df=min_df, max_features=max_features, stop_words="english")
+    dtm = vectorizer.fit_transform(texts)
+    lda = LatentDirichletAllocation(
+        n_components=num_topics,
+        learning_method="online",
+        max_iter=10,
+        batch_size=1024,
+        random_state=42,
+    )
+    lda.fit(dtm)
+
+    vis = prepare(lda, dtm, vectorizer)
+    out_html.parent.mkdir(parents=True, exist_ok=True)
+    pyLDAvis.save_html(vis, out_html)
+
+
+def main() -> None:
+    args = parse_args()
+    if not args.corpus_path.exists():
+        raise FileNotFoundError(f"Corpus not found: {args.corpus_path}")
+
+    texts = load_texts(args.corpus_path, args.max_docs)
+    if not texts:
+        raise ValueError("No documents loaded from corpus.")
+
+    lengths = [len(t.split()) for t in texts]
+
+    out_dir = args.output_dir
+    make_length_plot(lengths, out_dir / "doc_lengths.png", out_dir / "doc_length_stats.json")
+
+    build_pyldavis(
+        texts,
+        out_dir / "lda_vis.html",
+        num_topics=args.num_topics,
+        min_df=args.min_df,
+        max_features=args.max_features,
+    )
+
+    print(f"Done. Outputs in {out_dir}")
+
+
+if __name__ == "__main__":
+    main()
