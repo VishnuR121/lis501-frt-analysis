@@ -61,7 +61,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--presence-threshold",
         type=float,
-        default=0.05,
+        default=0.1,
         help="Minimum topic weight to count a topic as present in a document.",
     )
     parser.add_argument(
@@ -91,14 +91,11 @@ def load_topic_names(path: Path) -> Dict[int, str]:
 def load_pairs() -> List[TopicPair]:
     # Topic IDs are derived from lda_2008_2019/topics.json
     return [
-        TopicPair("Immigration vs Build Wall", topic_a=11, topic_b=7),
-        TopicPair("Sex/Gender vs Abortion", topic_a=32, topic_b=41),
-        TopicPair("Climate Change vs Economy", topic_a=30, topic_b=45),
-        TopicPair("Obama vs Trump", topic_a=10, topic_b=39),
-        TopicPair("Guns vs Crime", topic_a=46, topic_b=48),
-        TopicPair("Religion vs Abortion", topic_a=15, topic_b=41),
+        TopicPair("Immigration vs Build Wall", topic_a=11, topic_b=7),          # friendship exemplar
+        TopicPair("Obama vs Trump", topic_a=10, topic_b=39),                    # tryst exemplar
+        TopicPair("Education vs Econ Theory", topic_a=1, topic_b=27),          # arms-race candidate
+        TopicPair("News Trust vs Sex/Gender", topic_a=14, topic_b=32),         # head-to-head candidate
     ]
-
 
 def year_from_ts(ts: int) -> int:
     return datetime.fromtimestamp(ts, tz=timezone.utc).year
